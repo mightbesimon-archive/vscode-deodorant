@@ -39,6 +39,7 @@ from pygls.lsp.types.basic_structures import (WorkDoneProgressBegin,
                                               WorkDoneProgressReport)
 from pygls.server import LanguageServer
 
+
 COUNT_DOWN_START_IN_SECONDS = 10
 COUNT_DOWN_SLEEP_IN_SECONDS = 1
 
@@ -68,7 +69,8 @@ def _validate(ls, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
 
     source = text_doc.source
-    diagnostics = _validate_json(source) if source else []
+    #diagnostics = _validate_json(source) if source else []
+    diagnostics = _validate_helloworld(source, ls) if source else []
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
 
@@ -94,6 +96,34 @@ def _validate_json(source):
         )
 
         diagnostics.append(d)
+
+    return diagnostics
+
+
+def _validate_helloworld(source, ls):
+    """Detects the string 'hello world'."""
+    detect_string = "hello world"
+    diagnostics = []
+
+    lineNum = 0
+    for line in source.split("\n"):
+        start = 0
+        index = line.find(detect_string, start)
+        while index != -1:
+            d = Diagnostic(
+                range=Range(
+                    start=Position(line=lineNum, character=index),
+                    end=Position(line=lineNum, character=index + len(detect_string))
+                ),
+                message="Hello!",
+                source=type(json_server).__name__
+            )
+
+            diagnostics.append(d)
+            start = index + 1
+            index = line.find(detect_string, start)
+
+        lineNum += 1
 
     return diagnostics
 
