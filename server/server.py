@@ -28,7 +28,7 @@ from pygls.lsp.methods import (COMPLETION, TEXT_DOCUMENT_DID_CHANGE,
 from pygls.lsp.types import (CompletionItem, CompletionList, CompletionOptions,
                              CompletionParams, ConfigurationItem,
                              ConfigurationParams, Diagnostic,
-                             DidChangeTextDocumentParams,
+                             DidChangeTextDocumentParams, DiagnosticSeverity, 
                              DidCloseTextDocumentParams,
                              DidOpenTextDocumentParams, MessageType, Position,
                              Range, Registration, RegistrationParams,
@@ -117,6 +117,7 @@ def _validate_helloworld(source, ls):
                 ),
                 message="Hello!",
                 source=type(json_server).__name__
+                severity = DiagnosticSeverity.Warning
             )
 
             diagnostics.append(d)
