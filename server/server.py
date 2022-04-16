@@ -14,11 +14,6 @@
 # See the License for the specific language governing permissions and      #
 # limitations under the License.                                           #
 ############################################################################
-import asyncio
-import json
-import re
-import time
-import uuid
 from json import JSONDecodeError
 from typing import Optional
 
@@ -67,7 +62,6 @@ def _validate(ls, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
 
     source = text_doc.source
-    #diagnostics = _validate_json(source) if source else []
     #diagnostics = _validate_helloworld(source, ls) if source else []
     diagnostics = _validate_ifelsereturnbool(source, ls) if source else []
 
@@ -98,31 +92,6 @@ def _validate_ifelsereturnbool(source, ls):
         return diagnostics
     except:
         return [] # do not return any diagnostics if code fails to parse to AST
-
-
-def _validate_json(source):
-    """Validates json file."""
-    diagnostics = []
-
-    try:
-        json.loads(source)
-    except JSONDecodeError as err:
-        msg = err.msg
-        col = err.colno
-        line = err.lineno
-
-        d = Diagnostic(
-            range=Range(
-                start=Position(line=line - 1, character=col - 1),
-                end=Position(line=line - 1, character=col)
-            ),
-            message=msg,
-            source=type(json_server).__name__
-        )
-
-        diagnostics.append(d)
-
-    return diagnostics
 
 
 def _validate_helloworld(source, ls):
