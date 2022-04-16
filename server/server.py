@@ -111,7 +111,7 @@ def _validate_helloworld(source, ls):
                     end=Position(line=lineNum, character=index + len(detect_string))
                 ),
                 message="Hello!",
-                source=type(json_server).__name__
+                source=type(json_server).__name__,
                 severity = DiagnosticSeverity.Warning
             )
 
