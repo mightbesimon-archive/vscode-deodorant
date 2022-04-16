@@ -39,6 +39,9 @@ from pygls.lsp.types.basic_structures import (WorkDoneProgressBegin,
                                               WorkDoneProgressReport)
 from pygls.server import LanguageServer
 
+import ast
+
+from qchecker import IfElseReturnBool
 
 COUNT_DOWN_START_IN_SECONDS = 10
 COUNT_DOWN_SLEEP_IN_SECONDS = 1
@@ -65,9 +68,36 @@ def _validate(ls, params):
 
     source = text_doc.source
     #diagnostics = _validate_json(source) if source else []
-    diagnostics = _validate_helloworld(source, ls) if source else []
+    #diagnostics = _validate_helloworld(source, ls) if source else []
+    diagnostics = _validate_ifelsereturnbool(source, ls) if source else []
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
+
+
+def _generate_diagnostic(match, message):
+    return Diagnostic(
+                range=Range(
+                    start=Position(line=match.from_line-1, character=match.from_offset-1),
+                    end=Position(line=match.to_line-1, character=match.to_offset-1)
+                ),
+                message=message,
+                source=type(json_server).__name__,
+                severity = DiagnosticSeverity.Warning
+            )
+
+
+def _validate_ifelsereturnbool(source, ls):
+    """Flags matches of the IfElseReturnBool pattern as warnings"""
+    try:
+        tree = ast.parse(source)
+        matches = IfElseReturnBool.iter_matches(tree)
+        ls.show_message_log(matches)
+
+        diagnostics = [_generate_diagnostic(match, "Placeholder message") for match in matches]
+
+        return diagnostics
+    except:
+        return [] # do not return any diagnostics if code fails to parse to AST
 
 
 def _validate_json(source):
@@ -111,7 +141,7 @@ def _validate_helloworld(source, ls):
                     end=Position(line=lineNum, character=index + len(detect_string))
                 ),
                 message="Hello!",
-                source=type(json_server).__name__
+                source=type(json_server).__name__,
                 severity = DiagnosticSeverity.Warning
             )
 
