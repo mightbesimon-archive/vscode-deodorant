@@ -2,9 +2,12 @@
 
 ## Install Server Dependencies
 
-1. `python -m venv env`
-1. `python -m pip install -e .` from root directory
+1. `python -m venv venv`
+1. `pip install -r requirements.txt` from root directory
+1. `source venv/bin/activate` on Mac, `.\env\Scripts\activate` on Windows
 1. Create `.vscode/settings.json` file and set `python.pythonPath` to point to your python environment where `pygls` is installed
+
+`deactivate` to deactivate the virtual enviroment
 
 ## Install Client Dependencies
 

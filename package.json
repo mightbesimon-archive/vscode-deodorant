@@ -13,7 +13,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:json"
+    "onLanguage:python"
   ],
   "contributes": {
     "commands": [
