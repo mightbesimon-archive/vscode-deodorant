@@ -39,23 +39,24 @@ from pygls.lsp.types.basic_structures import (WorkDoneProgressBegin,
                                               WorkDoneProgressReport)
 from pygls.server import LanguageServer
 
+import ast
 
-COUNT_DOWN_START_IN_SECONDS = 10
-COUNT_DOWN_SLEEP_IN_SECONDS = 1
+#from qchecker import IfElseReturnBool
 
 
-class pyDeoderiserServer(LanguageServer):
+class PyDeoderiserServer(LanguageServer):
     CMD_SHOW_CONFIGURATION_ASYNC = 'showConfigurationAsync'
     CMD_SHOW_CONFIGURATION_CALLBACK = 'showConfigurationCallback'
     CMD_SHOW_CONFIGURATION_THREAD = 'showConfigurationThread'
 
     CONFIGURATION_SECTION = 'pyDeoderiser'
+    WARNING_SOURCE = 'pyDeoderiser'
 
     def __init__(self):
         super().__init__()
 
 
-pyDeoderiser = pyDeoderiserServer()
+pyDeoderiser = PyDeoderiserServer()
 
 
 def _validate(ls, params):
@@ -70,29 +71,30 @@ def _validate(ls, params):
     ls.publish_diagnostics(text_doc.uri, diagnostics)
 
 
-def _validate_json(source):
-    """Validates json file."""
-    diagnostics = []
+def _generate_diagnostic(match, message):
+    return Diagnostic(
+                range=Range(
+                    start=Position(line=match.from_line-1, character=match.from_offset-1),
+                    end=Position(line=match.to_line-1, character=match.to_offset-1)
+                ),
+                message=message,
+                source=PyDeoderiserServer.WARNING_SOURCE,
+                severity = DiagnosticSeverity.Warning
+            )
 
-    try:
-        json.loads(source)
-    except JSONDecodeError as err:
-        msg = err.msg
-        col = err.colno
-        line = err.lineno
 
-        d = Diagnostic(
-            range=Range(
-                start=Position(line=line - 1, character=col - 1),
-                end=Position(line=line - 1, character=col)
-            ),
-            message=msg,
-            source=type(pyDeoderiser).__name__
-        )
+# def _validate_ifelsereturnbool(source, ls):
+#     """Flags matches of the IfElseReturnBool pattern as warnings"""
+#     try:
+#         tree = ast.parse(source)
+#         matches = IfElseReturnBool.iter_matches(tree)
+#         ls.show_message_log(matches)
 
-        diagnostics.append(d)
+#         diagnostics = [_generate_diagnostic(match, "Placeholder message") for match in matches]
 
-    return diagnostics
+#         return diagnostics
+#     except:
+#         return [] # do not return any diagnostics if code fails to parse to AST
 
 
 def _validate_helloworld(source, ls):
@@ -111,7 +113,7 @@ def _validate_helloworld(source, ls):
                     end=Position(line=lineNum, character=index + len(detect_string))
                 ),
                 message="Hello!",
-                source=type(pyDeoderiser).__name__,
+                source=PyDeoderiserServer.WARNING_SOURCE,
                 severity = DiagnosticSeverity.Warning
             )
 
@@ -131,7 +133,7 @@ def did_change(ls, params: DidChangeTextDocumentParams):
 
 
 @pyDeoderiser.feature(TEXT_DOCUMENT_DID_CLOSE)
-def did_close(server: pyDeoderiserServer, params: DidCloseTextDocumentParams):
+def did_close(server: PyDeoderiserServer, params: DidCloseTextDocumentParams):
     """Text document did close notification."""
     server.show_message('Text Document Did Close')
 
@@ -143,15 +145,15 @@ async def did_open(ls, params: DidOpenTextDocumentParams):
     _validate(ls, params)
 
 
-@pyDeoderiser.command(pyDeoderiserServer.CMD_SHOW_CONFIGURATION_ASYNC)
-async def show_configuration_async(ls: pyDeoderiserServer, *args):
+@pyDeoderiser.command(PyDeoderiserServer.CMD_SHOW_CONFIGURATION_ASYNC)
+async def show_configuration_async(ls: PyDeoderiserServer, *args):
     """Gets exampleConfiguration from the client settings using coroutines."""
     try:
         config = await ls.get_configuration_async(
             ConfigurationParams(items=[
                 ConfigurationItem(
                     scope_uri='',
-                    section=pyDeoderiserServer.CONFIGURATION_SECTION)
+                    section=PyDeoderiserServer.CONFIGURATION_SECTION)
         ]))
 
         example_config = config[0].get('exampleConfiguration')
@@ -162,8 +164,8 @@ async def show_configuration_async(ls: pyDeoderiserServer, *args):
         ls.show_message_log(f'Error ocurred: {e}')
 
 
-@pyDeoderiser.command(pyDeoderiserServer.CMD_SHOW_CONFIGURATION_CALLBACK)
-def show_configuration_callback(ls: pyDeoderiserServer, *args):
+@pyDeoderiser.command(PyDeoderiserServer.CMD_SHOW_CONFIGURATION_CALLBACK)
+def show_configuration_callback(ls: PyDeoderiserServer, *args):
     """Gets exampleConfiguration from the client settings using callback."""
     def _config_callback(config):
         try:
@@ -177,19 +179,19 @@ def show_configuration_callback(ls: pyDeoderiserServer, *args):
     ls.get_configuration(ConfigurationParams(items=[
         ConfigurationItem(
             scope_uri='',
-            section=pyDeoderiserServer.CONFIGURATION_SECTION)
+            section=PyDeoderiserServer.CONFIGURATION_SECTION)
     ]), _config_callback)
 
 
 @pyDeoderiser.thread()
-@pyDeoderiser.command(pyDeoderiserServer.CMD_SHOW_CONFIGURATION_THREAD)
-def show_configuration_thread(ls: pyDeoderiserServer, *args):
+@pyDeoderiser.command(PyDeoderiserServer.CMD_SHOW_CONFIGURATION_THREAD)
+def show_configuration_thread(ls: PyDeoderiserServer, *args):
     """Gets exampleConfiguration from the client settings using thread pool."""
     try:
         config = ls.get_configuration(ConfigurationParams(items=[
             ConfigurationItem(
                 scope_uri='',
-                section=pyDeoderiserServer.CONFIGURATION_SECTION)
+                section=PyDeoderiserServer.CONFIGURATION_SECTION)
         ])).result(2)
 
         example_config = config[0].get('exampleConfiguration')
