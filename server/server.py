@@ -14,13 +14,6 @@
 # See the License for the specific language governing permissions and      #
 # limitations under the License.                                           #
 ############################################################################
-import asyncio
-import json
-import re
-import time
-import uuid
-from json import JSONDecodeError
-from typing import Optional
 
 from pygls.lsp.methods import (COMPLETION, TEXT_DOCUMENT_DID_CHANGE,
                                TEXT_DOCUMENT_DID_CLOSE, TEXT_DOCUMENT_DID_OPEN, 
@@ -39,9 +32,7 @@ from pygls.lsp.types.basic_structures import (WorkDoneProgressBegin,
                                               WorkDoneProgressReport)
 from pygls.server import LanguageServer
 
-import ast
-
-#from qchecker import IfElseReturnBool
+from qchecker.substructures import IfElseReturnBool
 
 
 class PyDeoderiserServer(LanguageServer):
@@ -65,17 +56,17 @@ def _validate(ls, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
 
     source = text_doc.source
-    #diagnostics = _validate_json(source) if source else []
-    diagnostics = _validate_helloworld(source, ls) if source else []
+    diagnostics = _validate_ifelsereturnbool(source) if source else []
+    #diagnostics = _validate_helloworld(source) if source else []
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
 
 
-def _generate_diagnostic(match, message):
+def _generate_diagnostic(text_range, message):
     return Diagnostic(
                 range=Range(
-                    start=Position(line=match.from_line-1, character=match.from_offset-1),
-                    end=Position(line=match.to_line-1, character=match.to_offset-1)
+                    start=Position(line=text_range.from_line-1, character=text_range.from_offset-1),
+                    end=Position(line=text_range.to_line-1, character=text_range.to_offset-1)
                 ),
                 message=message,
                 source=PyDeoderiserServer.WARNING_SOURCE,
@@ -83,21 +74,18 @@ def _generate_diagnostic(match, message):
             )
 
 
-# def _validate_ifelsereturnbool(source, ls):
-#     """Flags matches of the IfElseReturnBool pattern as warnings"""
-#     try:
-#         tree = ast.parse(source)
-#         matches = IfElseReturnBool.iter_matches(tree)
-#         ls.show_message_log(matches)
+def _validate_ifelsereturnbool(source):
+    """Flags matches of the IfElseReturnBool pattern as warnings"""
+    try:
+        matches = IfElseReturnBool.iter_matches(source)
+        diagnostics = [_generate_diagnostic(match.text_range, IfElseReturnBool.technical_description) for match in matches]
+    except SyntaxError:
+        diagnositics = [] # do not return any diagnostics if code fails to parse
 
-#         diagnostics = [_generate_diagnostic(match, "Placeholder message") for match in matches]
-
-#         return diagnostics
-#     except:
-#         return [] # do not return any diagnostics if code fails to parse to AST
+    return diagnostics
 
 
-def _validate_helloworld(source, ls):
+def _validate_helloworld(source):
     """Detects the string 'hello world'."""
     detect_string = "hello world"
     diagnostics = []
