@@ -35,7 +35,7 @@ from pygls.server import LanguageServer
 from qchecker.substructures import IfElseReturnBool
 
 
-class PyDeoderiserServer(LanguageServer):
+class PyDeodoriserServer(LanguageServer):
     CMD_SHOW_CONFIGURATION_ASYNC = 'showConfigurationAsync'
     CMD_SHOW_CONFIGURATION_CALLBACK = 'showConfigurationCallback'
     CMD_SHOW_CONFIGURATION_THREAD = 'showConfigurationThread'
@@ -47,7 +47,7 @@ class PyDeoderiserServer(LanguageServer):
         super().__init__()
 
 
-pyDeoderiser = PyDeoderiserServer()
+pyDeodoriser = PyDeodoriserServer()
 
 
 def _validate(ls, params):
@@ -69,7 +69,7 @@ def _generate_diagnostic(text_range, message):
                     end=Position(line=text_range.to_line-1, character=text_range.to_offset-1)
                 ),
                 message=message,
-                source=PyDeoderiserServer.WARNING_SOURCE,
+                source=PyDeodoriserServer.WARNING_SOURCE,
                 severity = DiagnosticSeverity.Warning
             )
 
@@ -101,7 +101,7 @@ def _validate_helloworld(source):
                     end=Position(line=lineNum, character=index + len(detect_string))
                 ),
                 message="Hello!",
-                source=PyDeoderiserServer.WARNING_SOURCE,
+                source=PyDeodoriserServer.WARNING_SOURCE,
                 severity = DiagnosticSeverity.Warning
             )
 
@@ -114,34 +114,34 @@ def _validate_helloworld(source):
     return diagnostics
 
 
-@pyDeoderiser.feature(TEXT_DOCUMENT_DID_CHANGE)
+@pyDeodoriser.feature(TEXT_DOCUMENT_DID_CHANGE)
 def did_change(ls, params: DidChangeTextDocumentParams):
     """Text document did change notification."""
     _validate(ls, params)
 
 
-@pyDeoderiser.feature(TEXT_DOCUMENT_DID_CLOSE)
-def did_close(server: PyDeoderiserServer, params: DidCloseTextDocumentParams):
+@pyDeodoriser.feature(TEXT_DOCUMENT_DID_CLOSE)
+def did_close(server: PyDeodoriserServer, params: DidCloseTextDocumentParams):
     """Text document did close notification."""
     server.show_message('Text Document Did Close')
 
 
-@pyDeoderiser.feature(TEXT_DOCUMENT_DID_OPEN)
+@pyDeodoriser.feature(TEXT_DOCUMENT_DID_OPEN)
 async def did_open(ls, params: DidOpenTextDocumentParams):
     """Text document did open notification."""
     ls.show_message('Text Document Did Open')
     _validate(ls, params)
 
 
-@pyDeoderiser.command(PyDeoderiserServer.CMD_SHOW_CONFIGURATION_ASYNC)
-async def show_configuration_async(ls: PyDeoderiserServer, *args):
+@pyDeodoriser.command(PyDeodoriserServer.CMD_SHOW_CONFIGURATION_ASYNC)
+async def show_configuration_async(ls: PyDeodoriserServer, *args):
     """Gets exampleConfiguration from the client settings using coroutines."""
     try:
         config = await ls.get_configuration_async(
             ConfigurationParams(items=[
                 ConfigurationItem(
                     scope_uri='',
-                    section=PyDeoderiserServer.CONFIGURATION_SECTION)
+                    section=PyDeodoriserServer.CONFIGURATION_SECTION)
         ]))
 
         example_config = config[0].get('exampleConfiguration')
@@ -152,8 +152,8 @@ async def show_configuration_async(ls: PyDeoderiserServer, *args):
         ls.show_message_log(f'Error ocurred: {e}')
 
 
-@pyDeoderiser.command(PyDeoderiserServer.CMD_SHOW_CONFIGURATION_CALLBACK)
-def show_configuration_callback(ls: PyDeoderiserServer, *args):
+@pyDeodoriser.command(PyDeodoriserServer.CMD_SHOW_CONFIGURATION_CALLBACK)
+def show_configuration_callback(ls: PyDeodoriserServer, *args):
     """Gets exampleConfiguration from the client settings using callback."""
     def _config_callback(config):
         try:
@@ -167,19 +167,19 @@ def show_configuration_callback(ls: PyDeoderiserServer, *args):
     ls.get_configuration(ConfigurationParams(items=[
         ConfigurationItem(
             scope_uri='',
-            section=PyDeoderiserServer.CONFIGURATION_SECTION)
+            section=PyDeodoriserServer.CONFIGURATION_SECTION)
     ]), _config_callback)
 
 
-@pyDeoderiser.thread()
-@pyDeoderiser.command(PyDeoderiserServer.CMD_SHOW_CONFIGURATION_THREAD)
-def show_configuration_thread(ls: PyDeoderiserServer, *args):
+@pyDeodoriser.thread()
+@pyDeodoriser.command(PyDeodoriserServer.CMD_SHOW_CONFIGURATION_THREAD)
+def show_configuration_thread(ls: PyDeodoriserServer, *args):
     """Gets exampleConfiguration from the client settings using thread pool."""
     try:
         config = ls.get_configuration(ConfigurationParams(items=[
             ConfigurationItem(
                 scope_uri='',
-                section=PyDeoderiserServer.CONFIGURATION_SECTION)
+                section=PyDeodoriserServer.CONFIGURATION_SECTION)
         ])).result(2)
 
         example_config = config[0].get('exampleConfiguration')

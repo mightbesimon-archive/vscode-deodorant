@@ -17,7 +17,7 @@
 import argparse
 import logging
 
-from .server import pyDeoderiser
+from .server import pyDeodoriser
 
 logging.basicConfig(filename="pygls.log", level=logging.DEBUG, filemode="w")
 
@@ -49,11 +49,11 @@ def main():
     args = parser.parse_args()
 
     if args.tcp:
-        pyDeoderiser.start_tcp(args.host, args.port)
+        pyDeodoriser.start_tcp(args.host, args.port)
     elif args.ws:
-        pyDeoderiser.start_ws(args.host, args.port)
+        pyDeodoriser.start_ws(args.host, args.port)
     else:
-        pyDeoderiser.start_io()
+        pyDeodoriser.start_io()
 
 
 if __name__ == '__main__':
