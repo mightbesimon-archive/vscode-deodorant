@@ -40,10 +40,11 @@ class PyDeodoriserServer(LanguageServer):
     CMD_SHOW_CONFIGURATION_CALLBACK = 'showConfigurationCallback'
     CMD_SHOW_CONFIGURATION_THREAD = 'showConfigurationThread'
 
-    CONFIGURATION_SECTION = 'pyDeoderiser'
-    WARNING_SOURCE = 'pyDeoderiser'
+    CONFIGURATION_SECTION = 'pyDeodoriser'
+    WARNING_SOURCE = 'pyDeodoriser'
 
     def __init__(self):
+        self.substructure_config = dict()
         super().__init__()
 
 
@@ -51,8 +52,6 @@ pyDeodoriser = PyDeodoriserServer()
 
 
 def _validate(ls, params):
-    ls.show_message_log('Validating json...')
-
     text_doc = ls.workspace.get_document(params.text_document.uri)
 
     source = text_doc.source
@@ -114,6 +113,22 @@ def _validate_helloworld(source):
     return diagnostics
 
 
+async def _get_substructure_config(ls):
+    """Retrieves a dictionary of the substructure config"""
+    try:
+        config = await ls.get_configuration_async(
+            ConfigurationParams(items=[
+                ConfigurationItem(
+                    scope_uri='',
+                    section=PyDeodoriserServer.CONFIGURATION_SECTION
+                )
+            ])
+        )
+        return config[0].get("substructures")
+    except Exception as e:
+        ls.show_message_log(f'Config error: {e}')
+
+
 @pyDeodoriser.feature(TEXT_DOCUMENT_DID_CHANGE)
 def did_change(ls, params: DidChangeTextDocumentParams):
     """Text document did change notification."""
@@ -146,7 +161,7 @@ async def show_configuration_async(ls: PyDeodoriserServer, *args):
 
         example_config = config[0].get('exampleConfiguration')
 
-        ls.show_message(f'pyDeoderiser.exampleConfiguration value: {example_config}')
+        ls.show_message(f'pyDeodoriser.exampleConfiguration value: {example_config}')
 
     except Exception as e:
         ls.show_message_log(f'Error ocurred: {e}')
@@ -159,7 +174,7 @@ def show_configuration_callback(ls: PyDeodoriserServer, *args):
         try:
             example_config = config[0].get('exampleConfiguration')
 
-            ls.show_message(f'pyDeoderiser.exampleConfiguration value: {example_config}')
+            ls.show_message(f'pyDeodoriser.exampleConfiguration value: {example_config}')
 
         except Exception as e:
             ls.show_message_log(f'Error ocurred: {e}')
@@ -184,7 +199,7 @@ def show_configuration_thread(ls: PyDeodoriserServer, *args):
 
         example_config = config[0].get('exampleConfiguration')
 
-        ls.show_message(f'pyDeoderiser.exampleConfiguration value: {example_config}')
+        ls.show_message(f'pyDeodoriser.exampleConfiguration value: {example_config}')
 
     except Exception as e:
         ls.show_message_log(f'Error ocurred: {e}')

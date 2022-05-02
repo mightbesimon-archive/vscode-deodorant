@@ -36,7 +36,7 @@ function getClientOptions(): LanguageClientOptions {
             { scheme: "file", language: "python" },
             { scheme: "untitled", language: "python" },
         ],
-        outputChannelName: "[pygls] pyDeoderiserServer",
+        outputChannelName: "[pygls] pyDeodoriserServer",
         synchronize: {
             // Notify the server about file changes to '.clientrc files contain in the workspace
             fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),

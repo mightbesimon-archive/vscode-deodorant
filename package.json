@@ -16,48 +16,27 @@
     "onLanguage:python"
   ],
   "contributes": {
-    "commands": [
-      {
-        "command": "countDownBlocking",
-        "title": "Count down 10 seconds [Blocking]"
-      },
-      {
-        "command": "countDownNonBlocking",
-        "title": "Count down 10 seconds [Non Blocking]"
-      },
-      {
-        "command": "progress",
-        "title": "Start the progress"
-      },
-      {
-        "command": "registerCompletions",
-        "title": "Register completions"
-      },
-      {
-        "command": "showConfigurationAsync",
-        "title": "Show Json Example Configuration [Async]"
-      },
-      {
-        "command": "showConfigurationCallback",
-        "title": "Show Json Example Configuration [Callback]"
-      },
-      {
-        "command": "showConfigurationThread",
-        "title": "Show Json Example Configuration [Thread]"
-      },
-      {
-        "command": "unregisterCompletions",
-        "title": "Unregister completions"
-      }
-    ],
+    "commands": [],
     "configuration": {
       "type": "object",
-      "title": "Json Server Configuration",
+      "title": "pyDeodoriser",
       "properties": {
-        "jsonServer.exampleConfiguration": {
-          "scope": "resource",
-          "type": "string",
-          "default": "You can override this message."
+        "pyDeodoriser.substructures": {
+          "type": "object",
+          "description": "Toggle the detection of different patterns.",
+          "properties": {
+            "UnnecessaryElif": {
+              "type": "boolean"
+            },
+            "IfElseReturnBool": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "default": {
+            "UnnecessaryElif": true,
+            "IfElseReturnBool": true
+          }
         }
       }
     }
