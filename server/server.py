@@ -15,12 +15,12 @@
 # limitations under the License.                                           #
 ############################################################################
 
-from pygls.lsp.methods import (COMPLETION, TEXT_DOCUMENT_DID_CHANGE,
+from pygls.lsp.methods import (TEXT_DOCUMENT_DID_CHANGE,
                                TEXT_DOCUMENT_DID_CLOSE, TEXT_DOCUMENT_DID_OPEN, 
-                               TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL)
-from pygls.lsp.types import (CompletionItem, CompletionList, CompletionOptions,
-                             CompletionParams, ConfigurationItem,
-                             ConfigurationParams, Diagnostic, DiagnosticSeverity,
+                               WORKSPACE_DID_CHANGE_CONFIGURATION)
+from pygls.lsp.types import (ConfigurationItem, ConfigurationParams, 
+                             DidChangeConfigurationParams,
+                             Diagnostic, DiagnosticSeverity,
                              DidChangeTextDocumentParams, 
                              DidCloseTextDocumentParams,
                              DidOpenTextDocumentParams, MessageType, Position,
@@ -32,7 +32,7 @@ from pygls.lsp.types.basic_structures import (WorkDoneProgressBegin,
                                               WorkDoneProgressReport)
 from pygls.server import LanguageServer
 
-from qchecker.substructures import IfElseReturnBool
+import qchecker.substructures
 
 
 class PyDeodoriserServer(LanguageServer):
@@ -45,6 +45,7 @@ class PyDeodoriserServer(LanguageServer):
 
     def __init__(self):
         self.substructure_config = dict()
+        self.substructures = dict([(name, cls) for name, cls in qchecker.substructures.__dict__.items() if isinstance(cls, type)]) # dictionary of qcheckers substructures
         super().__init__()
 
 
@@ -55,8 +56,12 @@ def _validate(ls, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
 
     source = text_doc.source
-    diagnostics = _validate_ifelsereturnbool(source) if source else []
-    #diagnostics = _validate_helloworld(source) if source else []
+    
+    diagnostics = []
+    if source:
+        for substructure_name in ls.substructures.keys():
+            if ls.substructure_config.get(substructure_name, False):
+                diagnostics += _validate_substructure(source, ls.substructures[substructure_name])
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
 
@@ -73,11 +78,11 @@ def _generate_diagnostic(text_range, message):
             )
 
 
-def _validate_ifelsereturnbool(source):
-    """Flags matches of the IfElseReturnBool pattern as warnings"""
+def _validate_substructure(source, substructure):
+    """Flags matches of the substructure as warnings"""
     try:
-        matches = IfElseReturnBool.iter_matches(source)
-        diagnostics = [_generate_diagnostic(match.text_range, IfElseReturnBool.technical_description) for match in matches]
+        matches = substructure.iter_matches(source)
+        diagnostics = [_generate_diagnostic(match.text_range, substructure.technical_description) for match in matches]
     except SyntaxError:
         diagnositics = [] # do not return any diagnostics if code fails to parse
 
@@ -124,7 +129,7 @@ async def _get_substructure_config(ls):
                 )
             ])
         )
-        return config[0].get("substructures")
+        ls.substructure_config = config[0].get("substructures")
     except Exception as e:
         ls.show_message_log(f'Config error: {e}')
 
@@ -145,62 +150,12 @@ def did_close(server: PyDeodoriserServer, params: DidCloseTextDocumentParams):
 async def did_open(ls, params: DidOpenTextDocumentParams):
     """Text document did open notification."""
     ls.show_message('Text Document Did Open')
+    await _get_substructure_config(ls)
     _validate(ls, params)
 
 
-@pyDeodoriser.command(PyDeodoriserServer.CMD_SHOW_CONFIGURATION_ASYNC)
-async def show_configuration_async(ls: PyDeodoriserServer, *args):
-    """Gets exampleConfiguration from the client settings using coroutines."""
-    try:
-        config = await ls.get_configuration_async(
-            ConfigurationParams(items=[
-                ConfigurationItem(
-                    scope_uri='',
-                    section=PyDeodoriserServer.CONFIGURATION_SECTION)
-        ]))
-
-        example_config = config[0].get('exampleConfiguration')
-
-        ls.show_message(f'pyDeodoriser.exampleConfiguration value: {example_config}')
-
-    except Exception as e:
-        ls.show_message_log(f'Error ocurred: {e}')
-
-
-@pyDeodoriser.command(PyDeodoriserServer.CMD_SHOW_CONFIGURATION_CALLBACK)
-def show_configuration_callback(ls: PyDeodoriserServer, *args):
-    """Gets exampleConfiguration from the client settings using callback."""
-    def _config_callback(config):
-        try:
-            example_config = config[0].get('exampleConfiguration')
-
-            ls.show_message(f'pyDeodoriser.exampleConfiguration value: {example_config}')
-
-        except Exception as e:
-            ls.show_message_log(f'Error ocurred: {e}')
-
-    ls.get_configuration(ConfigurationParams(items=[
-        ConfigurationItem(
-            scope_uri='',
-            section=PyDeodoriserServer.CONFIGURATION_SECTION)
-    ]), _config_callback)
-
-
-@pyDeodoriser.thread()
-@pyDeodoriser.command(PyDeodoriserServer.CMD_SHOW_CONFIGURATION_THREAD)
-def show_configuration_thread(ls: PyDeodoriserServer, *args):
-    """Gets exampleConfiguration from the client settings using thread pool."""
-    try:
-        config = ls.get_configuration(ConfigurationParams(items=[
-            ConfigurationItem(
-                scope_uri='',
-                section=PyDeodoriserServer.CONFIGURATION_SECTION)
-        ])).result(2)
-
-        example_config = config[0].get('exampleConfiguration')
-
-        ls.show_message(f'pyDeodoriser.exampleConfiguration value: {example_config}')
-
-    except Exception as e:
-        ls.show_message_log(f'Error ocurred: {e}')
+@pyDeodoriser.feature(WORKSPACE_DID_CHANGE_CONFIGURATION)
+async def did_change_configuration(ls, params: DidChangeConfigurationParams):
+    ls.show_message('Configuration Did Change')
+    _get_substructure_config(ls)
 

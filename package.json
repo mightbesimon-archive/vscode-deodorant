@@ -30,12 +30,16 @@
             },
             "IfElseReturnBool": {
               "type": "boolean"
+            },
+            "IfReturnBool": {
+              "type": "boolean"
             }
           },
           "additionalProperties": false,
           "default": {
             "UnnecessaryElif": true,
-            "IfElseReturnBool": true
+            "IfElseReturnBool": true,
+            "IfReturnBool": true
           }
         }
       }
