@@ -33,13 +33,89 @@
             },
             "IfReturnBool": {
               "type": "boolean"
-            }
+            },
+            "IfElseAssignReturn": {
+              "type": "boolean"
+            },
+            "IfElseAssignBoolReturn": {
+              "type": "boolean"
+            },
+            "IfElseAssignBool": {
+              "type": "boolean"
+            },
+            "EmptyIfBody": {
+              "type": "boolean"
+            },   
+            "EmptyElseBody": {
+              "type": "boolean"
+            }, 
+            "NestedIf": {
+              "type": "boolean"
+            }, 
+            "UnnecessaryElse": {
+              "type": "boolean"
+            }, 
+            "DuplicateIfElseStatement": {
+              "type": "boolean"
+            }, 
+            "SeveralDuplicateIfElseStatements": {
+              "type": "boolean"
+            }, 
+            "DuplicateIfElseBody": {
+              "type": "boolean"
+            }, 
+            "AugmentableAssignment": {
+              "type": "boolean"
+            }, 
+            "DuplicateExpression": {
+              "type": "boolean"
+            }, 
+            "MissedAbsoluteValue": {
+              "type": "boolean"
+            }, 
+            "RepeatedAddition": {
+              "type": "boolean"
+            }, 
+            "RepeatedMultiplication": {
+              "type": "boolean"
+            }, 
+            "RedundantArithmetic": {
+              "type": "boolean"
+            }, 
+            "RedundantNot": {
+              "type": "boolean"
+            }, 
+            "RedundantComparison": {
+              "type": "boolean"
+            }, 
+            "MergeableEqual": {
+              "type": "boolean"
+            }          
           },
           "additionalProperties": false,
           "default": {
             "UnnecessaryElif": true,
             "IfElseReturnBool": true,
-            "IfReturnBool": true
+            "IfReturnBool": true,
+            "IfElseAssignReturn": true,
+            "IfElseAssignBoolReturn": true,
+            "IfElseAssignBool": true,
+            "EmptyIfBody": true,
+            "EmptyElseBody": true,
+            "NestedIf": true,
+            "UnnecessaryElse": true,
+            "DuplicateIfElseStatement": true,
+            "SeveralDuplicateIfElseStatements": true,
+            "DuplicateIfElseBody": true,
+            "AugmentableAssignment": true,
+            "DuplicateExpression": true,
+            "MissedAbsoluteValue": true,
+            "RepeatedAddition": true,
+            "RepeatedMultiplication": true,
+            "RedundantArithmetic": true,
+            "RedundantNot": true,
+            "RedundantComparison": true,
+            "MergeableEqual": true
           }
         }
       }
