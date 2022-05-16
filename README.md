@@ -1,4 +1,4 @@
-# Json Language Server
+# pyDeodoriser
 
 ## Install Server Dependencies
 

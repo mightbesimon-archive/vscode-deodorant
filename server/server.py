@@ -14,20 +14,13 @@
 # See the License for the specific language governing permissions and      #
 # limitations under the License.                                           #
 ############################################################################
-import asyncio
-import json
-import re
-import time
-import uuid
-from json import JSONDecodeError
-from typing import Optional
 
-from pygls.lsp.methods import (COMPLETION, TEXT_DOCUMENT_DID_CHANGE,
+from pygls.lsp.methods import (TEXT_DOCUMENT_DID_CHANGE,
                                TEXT_DOCUMENT_DID_CLOSE, TEXT_DOCUMENT_DID_OPEN, 
-                               TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL)
-from pygls.lsp.types import (CompletionItem, CompletionList, CompletionOptions,
-                             CompletionParams, ConfigurationItem,
-                             ConfigurationParams, Diagnostic, DiagnosticSeverity,
+                               WORKSPACE_DID_CHANGE_CONFIGURATION)
+from pygls.lsp.types import (ConfigurationItem, ConfigurationParams, 
+                             DidChangeConfigurationParams,
+                             Diagnostic, DiagnosticSeverity,
                              DidChangeTextDocumentParams, 
                              DidCloseTextDocumentParams,
                              DidOpenTextDocumentParams, MessageType, Position,
@@ -39,63 +32,64 @@ from pygls.lsp.types.basic_structures import (WorkDoneProgressBegin,
                                               WorkDoneProgressReport)
 from pygls.server import LanguageServer
 
-
-COUNT_DOWN_START_IN_SECONDS = 10
-COUNT_DOWN_SLEEP_IN_SECONDS = 1
+import qchecker.substructures
 
 
-class JsonLanguageServer(LanguageServer):
+class PyDeodoriserServer(LanguageServer):
     CMD_SHOW_CONFIGURATION_ASYNC = 'showConfigurationAsync'
     CMD_SHOW_CONFIGURATION_CALLBACK = 'showConfigurationCallback'
     CMD_SHOW_CONFIGURATION_THREAD = 'showConfigurationThread'
 
-    CONFIGURATION_SECTION = 'jsonServer'
+    CONFIGURATION_SECTION = 'pyDeodoriser'
+    WARNING_SOURCE = 'pyDeodoriser'
 
     def __init__(self):
+        self.substructure_config = dict()
+        self.substructures = dict([(name, cls) for name, cls in qchecker.substructures.__dict__.items() if isinstance(cls, type)]) # dictionary of qcheckers substructures
         super().__init__()
 
 
-json_server = JsonLanguageServer()
+pyDeodoriser = PyDeodoriserServer()
 
 
 def _validate(ls, params):
-    ls.show_message_log('Validating json...')
-
     text_doc = ls.workspace.get_document(params.text_document.uri)
 
     source = text_doc.source
-    #diagnostics = _validate_json(source) if source else []
-    diagnostics = _validate_helloworld(source, ls) if source else []
+    
+    diagnostics = []
+    if source:
+        for substructure_name in ls.substructures.keys():
+            if ls.substructure_config.get(substructure_name, False):
+                diagnostics += _validate_substructure(source, ls.substructures[substructure_name])
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
 
 
-def _validate_json(source):
-    """Validates json file."""
-    diagnostics = []
+def _generate_diagnostic(text_range, message):
+    return Diagnostic(
+                range=Range(
+                    start=Position(line=text_range.from_line-1, character=text_range.from_offset-1),
+                    end=Position(line=text_range.to_line-1, character=text_range.to_offset-1)
+                ),
+                message=message,
+                source=PyDeodoriserServer.WARNING_SOURCE,
+                severity = DiagnosticSeverity.Warning
+            )
 
+
+def _validate_substructure(source, substructure):
+    """Flags matches of the substructure as warnings"""
     try:
-        json.loads(source)
-    except JSONDecodeError as err:
-        msg = err.msg
-        col = err.colno
-        line = err.lineno
-
-        d = Diagnostic(
-            range=Range(
-                start=Position(line=line - 1, character=col - 1),
-                end=Position(line=line - 1, character=col)
-            ),
-            message=msg,
-            source=type(json_server).__name__
-        )
-
-        diagnostics.append(d)
+        matches = substructure.iter_matches(source)
+        diagnostics = [_generate_diagnostic(match.text_range, substructure.technical_description) for match in matches]
+    except SyntaxError:
+        diagnositics = [] # do not return any diagnostics if code fails to parse
 
     return diagnostics
 
 
-def _validate_helloworld(source, ls):
+def _validate_helloworld(source):
     """Detects the string 'hello world'."""
     detect_string = "hello world"
     diagnostics = []
@@ -111,7 +105,7 @@ def _validate_helloworld(source, ls):
                     end=Position(line=lineNum, character=index + len(detect_string))
                 ),
                 message="Hello!",
-                source=type(json_server).__name__,
+                source=PyDeodoriserServer.WARNING_SOURCE,
                 severity = DiagnosticSeverity.Warning
             )
 
@@ -124,78 +118,44 @@ def _validate_helloworld(source, ls):
     return diagnostics
 
 
-@json_server.feature(TEXT_DOCUMENT_DID_CHANGE)
-def did_change(ls, params: DidChangeTextDocumentParams):
-    """Text document did change notification."""
-    _validate(ls, params)
-
-
-@json_server.feature(TEXT_DOCUMENT_DID_CLOSE)
-def did_close(server: JsonLanguageServer, params: DidCloseTextDocumentParams):
-    """Text document did close notification."""
-    server.show_message('Text Document Did Close')
-
-
-@json_server.feature(TEXT_DOCUMENT_DID_OPEN)
-async def did_open(ls, params: DidOpenTextDocumentParams):
-    """Text document did open notification."""
-    ls.show_message('Text Document Did Open')
-    _validate(ls, params)
-
-
-@json_server.command(JsonLanguageServer.CMD_SHOW_CONFIGURATION_ASYNC)
-async def show_configuration_async(ls: JsonLanguageServer, *args):
-    """Gets exampleConfiguration from the client settings using coroutines."""
+async def _get_substructure_config(ls):
+    """Retrieves a dictionary of the substructure config"""
     try:
         config = await ls.get_configuration_async(
             ConfigurationParams(items=[
                 ConfigurationItem(
                     scope_uri='',
-                    section=JsonLanguageServer.CONFIGURATION_SECTION)
-        ]))
-
-        example_config = config[0].get('exampleConfiguration')
-
-        ls.show_message(f'jsonServer.exampleConfiguration value: {example_config}')
-
+                    section=PyDeodoriserServer.CONFIGURATION_SECTION
+                )
+            ])
+        )
+        ls.substructure_config = config[0].get("substructures")
     except Exception as e:
-        ls.show_message_log(f'Error ocurred: {e}')
+        ls.show_message_log(f'Config error: {e}')
 
 
-@json_server.command(JsonLanguageServer.CMD_SHOW_CONFIGURATION_CALLBACK)
-def show_configuration_callback(ls: JsonLanguageServer, *args):
-    """Gets exampleConfiguration from the client settings using callback."""
-    def _config_callback(config):
-        try:
-            example_config = config[0].get('exampleConfiguration')
-
-            ls.show_message(f'jsonServer.exampleConfiguration value: {example_config}')
-
-        except Exception as e:
-            ls.show_message_log(f'Error ocurred: {e}')
-
-    ls.get_configuration(ConfigurationParams(items=[
-        ConfigurationItem(
-            scope_uri='',
-            section=JsonLanguageServer.CONFIGURATION_SECTION)
-    ]), _config_callback)
+@pyDeodoriser.feature(TEXT_DOCUMENT_DID_CHANGE)
+def did_change(ls, params: DidChangeTextDocumentParams):
+    """Text document did change notification."""
+    _validate(ls, params)
 
 
-@json_server.thread()
-@json_server.command(JsonLanguageServer.CMD_SHOW_CONFIGURATION_THREAD)
-def show_configuration_thread(ls: JsonLanguageServer, *args):
-    """Gets exampleConfiguration from the client settings using thread pool."""
-    try:
-        config = ls.get_configuration(ConfigurationParams(items=[
-            ConfigurationItem(
-                scope_uri='',
-                section=JsonLanguageServer.CONFIGURATION_SECTION)
-        ])).result(2)
+@pyDeodoriser.feature(TEXT_DOCUMENT_DID_CLOSE)
+def did_close(server: PyDeodoriserServer, params: DidCloseTextDocumentParams):
+    """Text document did close notification."""
+    server.show_message('Text Document Did Close')
 
-        example_config = config[0].get('exampleConfiguration')
 
-        ls.show_message(f'jsonServer.exampleConfiguration value: {example_config}')
+@pyDeodoriser.feature(TEXT_DOCUMENT_DID_OPEN)
+async def did_open(ls, params: DidOpenTextDocumentParams):
+    """Text document did open notification."""
+    ls.show_message('Text Document Did Open')
+    await _get_substructure_config(ls)
+    _validate(ls, params)
 
-    except Exception as e:
-        ls.show_message_log(f'Error ocurred: {e}')
+
+@pyDeodoriser.feature(WORKSPACE_DID_CHANGE_CONFIGURATION)
+async def did_change_configuration(ls, params: DidChangeConfigurationParams):
+    ls.show_message('Configuration Did Change')
+    _get_substructure_config(ls)
 
