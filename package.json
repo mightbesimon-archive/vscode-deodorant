@@ -1,8 +1,8 @@
 {
-  "name": "json-extension",
-  "description": "Simple json extension example",
-  "author": "Open Law Library",
-  "repository": "https://github.com/openlawlibrary/pygls",
+  "name": "pydeodoriser",
+  "description": "Python language extension for code smell",
+  "author": "Team 27 | COMPSCI 399 | Semester One | University of Auckland",
+  "repository": "https://github.com/uoa-compsci399-s1-2022/project-17/",
   "license": "Apache-2.0",
   "version": "0.11.3",
   "publisher": "openlawlibrary",
@@ -45,52 +45,52 @@
             },
             "EmptyIfBody": {
               "type": "boolean"
-            },   
+            },
             "EmptyElseBody": {
               "type": "boolean"
-            }, 
+            },
             "NestedIf": {
               "type": "boolean"
-            }, 
+            },
             "UnnecessaryElse": {
               "type": "boolean"
-            }, 
+            },
             "DuplicateIfElseStatement": {
               "type": "boolean"
-            }, 
+            },
             "SeveralDuplicateIfElseStatements": {
               "type": "boolean"
-            }, 
+            },
             "DuplicateIfElseBody": {
               "type": "boolean"
-            }, 
+            },
             "AugmentableAssignment": {
               "type": "boolean"
-            }, 
+            },
             "DuplicateExpression": {
               "type": "boolean"
-            }, 
+            },
             "MissedAbsoluteValue": {
               "type": "boolean"
-            }, 
+            },
             "RepeatedAddition": {
               "type": "boolean"
-            }, 
+            },
             "RepeatedMultiplication": {
               "type": "boolean"
-            }, 
+            },
             "RedundantArithmetic": {
               "type": "boolean"
-            }, 
+            },
             "RedundantNot": {
               "type": "boolean"
-            }, 
+            },
             "RedundantComparison": {
               "type": "boolean"
-            }, 
+            },
             "MergeableEqual": {
               "type": "boolean"
-            }          
+            }
           },
           "additionalProperties": false,
           "default": {
