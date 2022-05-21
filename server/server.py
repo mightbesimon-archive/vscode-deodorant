@@ -16,23 +16,18 @@
 ############################################################################
 
 from pygls.lsp.methods import (TEXT_DOCUMENT_DID_CHANGE,
-                               TEXT_DOCUMENT_DID_CLOSE, TEXT_DOCUMENT_DID_OPEN, 
+                               TEXT_DOCUMENT_DID_CLOSE, TEXT_DOCUMENT_DID_OPEN,
                                WORKSPACE_DID_CHANGE_CONFIGURATION)
-from pygls.lsp.types import (ConfigurationItem, ConfigurationParams, 
+from pygls.lsp.types import (ConfigurationItem, ConfigurationParams,
                              DidChangeConfigurationParams,
                              Diagnostic, DiagnosticSeverity,
-                             DidChangeTextDocumentParams, 
+                             DidChangeTextDocumentParams,
                              DidCloseTextDocumentParams,
-                             DidOpenTextDocumentParams, MessageType, Position,
-                             Range, Registration, RegistrationParams,
-                             SemanticTokens, SemanticTokensLegend, SemanticTokensParams,
-                             Unregistration, UnregistrationParams)
-from pygls.lsp.types.basic_structures import (WorkDoneProgressBegin,
-                                              WorkDoneProgressEnd,
-                                              WorkDoneProgressReport)
+                             DidOpenTextDocumentParams,
+                             Position, Range,)
 from pygls.server import LanguageServer
 
-import qchecker.substructures
+from qchecker import substructures
 
 
 class PyDeodoriserServer(LanguageServer):
@@ -44,9 +39,12 @@ class PyDeodoriserServer(LanguageServer):
     WARNING_SOURCE = 'pyDeodoriser'
 
     def __init__(self):
-        self.substructure_config = dict()
-        self.substructures = dict([(name, cls) for name, cls in qchecker.substructures.__dict__.items() if isinstance(cls, type)]) # dictionary of qcheckers substructures
         super().__init__()
+        self.substructure_config = {}
+        self.substructures = { name: clss
+            for name, clss in substructures.__dict__.items()
+            if isinstance(clss, type)
+        } # dictionary of qcheckers substructures
 
 
 pyDeodoriser = PyDeodoriserServer()
@@ -54,68 +52,62 @@ pyDeodoriser = PyDeodoriserServer()
 
 def _validate(ls, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
-
     source = text_doc.source
-    
-    diagnostics = []
-    if source:
-        for substructure_name in ls.substructures.keys():
-            if ls.substructure_config.get(substructure_name, False):
-                diagnostics += _validate_substructure(source, ls.substructures[substructure_name])
+
+    if not source: return   # guard clause
+    # diagnostics = _validate_string(source) # for debugging
+
+    diagnostics = [ diagnostic
+        for name, clss in ls.substructures.items() if name in ls.substructure_config
+        for diagnostic in _validate_substructure(source, clss)
+    ]
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
 
 
+
 def _generate_diagnostic(text_range, message):
+    diagnostic_range = Range(
+        start=Position(line=text_range.from_line-1, character=text_range.from_offset-1),
+        end=Position(line=text_range.to_line-1, character=text_range.to_offset-1),
+    )
     return Diagnostic(
-                range=Range(
-                    start=Position(line=text_range.from_line-1, character=text_range.from_offset-1),
-                    end=Position(line=text_range.to_line-1, character=text_range.to_offset-1)
-                ),
-                message=message,
-                source=PyDeodoriserServer.WARNING_SOURCE,
-                severity = DiagnosticSeverity.Warning
-            )
+        range=diagnostic_range,
+        message=message,
+        source=PyDeodoriserServer.WARNING_SOURCE,
+        severity = DiagnosticSeverity.Warning,
+    )
 
 
 def _validate_substructure(source, substructure):
     """Flags matches of the substructure as warnings"""
     try:
         matches = substructure.iter_matches(source)
-        diagnostics = [_generate_diagnostic(match.text_range, substructure.technical_description) for match in matches]
+        return [_generate_diagnostic(match.text_range,
+            substructure.technical_description) for match in matches]
     except SyntaxError:
-        diagnositics = [] # do not return any diagnostics if code fails to parse
-
-    return diagnostics
+        return [] # do not return any diagnostics if code fails to parse
 
 
-def _validate_helloworld(source):
-    """Detects the string 'hello world'."""
-    detect_string = "hello world"
-    diagnostics = []
+def _make_diagnostic(line, character, string):
+    diagnostic_range = Range(
+        start=Position(line=line, character=character),
+        end=Position(line=line, character=character+len(string)),
+    )
+    return Diagnostic(
+        range=diagnostic_range,
+        message=f'Detected string "{string}"',
+        source=PyDeodoriserServer.WARNING_SOURCE,
+        severity = DiagnosticSeverity.Warning,
+    )
 
-    lineNum = 0
-    for line in source.split("\n"):
-        start = 0
-        index = line.find(detect_string, start)
-        while index != -1:
-            d = Diagnostic(
-                range=Range(
-                    start=Position(line=lineNum, character=index),
-                    end=Position(line=lineNum, character=index + len(detect_string))
-                ),
-                message="Hello!",
-                source=PyDeodoriserServer.WARNING_SOURCE,
-                severity = DiagnosticSeverity.Warning
-            )
 
-            diagnostics.append(d)
-            start = index + 1
-            index = line.find(detect_string, start)
+def _validate_string(source, detect_string='hello world'):
+    """Detects the specified string, default='hello world'."""
 
-        lineNum += 1
-
-    return diagnostics
+    return [ _make_diagnostic(idx, line.find(detect_string), detect_string)
+        for idx, line in enumerate(source.split('\n')) if detect_string in line
+    ]
 
 
 async def _get_substructure_config(ls):
@@ -158,4 +150,3 @@ async def did_open(ls, params: DidOpenTextDocumentParams):
 async def did_change_configuration(ls, params: DidChangeConfigurationParams):
     ls.show_message('Configuration Did Change')
     _get_substructure_config(ls)
-
