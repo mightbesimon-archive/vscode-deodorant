@@ -15,8 +15,10 @@
 # limitations under the License.                                           #
 ############################################################################
 
+from cgitb import text
 from email import message
 from pygls.lsp.methods import (
+    HOVER,
     TEXT_DOCUMENT_DID_CHANGE,
     TEXT_DOCUMENT_DID_CLOSE,
     TEXT_DOCUMENT_DID_OPEN,
@@ -31,6 +33,10 @@ from pygls.lsp.types import (
     DidChangeTextDocumentParams,
     DidCloseTextDocumentParams,
     DidOpenTextDocumentParams,
+    Hover,
+    HoverParams,
+    MarkupContent,
+    MarkupKind,
     Position,
     Range,
 )
@@ -54,8 +60,8 @@ class PyDeodoriserServer(LanguageServer):
     def __init__(self):
         super().__init__()
         self.substructure_config = {}
-        self.substructures = { s.name: s
-            for s in SUBSTRUCTURES
+        self.substructures = { sub.name: sub
+            for sub in SUBSTRUCTURES
         } # dictionary of qcheckers substructures
 
 
@@ -70,8 +76,8 @@ def _validate(ls: PyDeodoriserServer, params):
     # diagnostics = _validate_string(source) # for debugging
 
     diagnostics = [ diagnostic
-        for name, clss in ls.substructures.items() if ls.substructure_config.get(name)
-        for diagnostic in _validate_substructure(source, clss)
+        for name, sub in ls.substructures.items() if ls.substructure_config.get(name)
+        for diagnostic in _validate_substructure(source, sub)
     ]
 
     ls.publish_diagnostics(text_doc.uri, diagnostics)
@@ -123,6 +129,36 @@ def _validate_string(source, detect_string='hello world'):
     ]
 
 
+def _contains(text_range: TextRange, position: Position):
+    return text_range.from_line <= position.line <= text_range.to_line
+
+
+def _check_hover(ls: PyDeodoriserServer, params: HoverParams):
+    text_doc = ls.workspace.get_document(params.text_document.uri)
+    source = text_doc.source
+
+    match_ranges = [ (match.text_range, sub)
+        for name, sub in ls.substructures.items() if ls.substructure_config.get(name)
+        for match in sub.iter_matches(source)
+    ]
+    hover_match = [ (text_range, sub)
+        for text_range, sub in match_ranges if _contains(text_range, params.position)
+    ]
+
+    if not hover_match: return
+
+    text_range, substructure = hover_match[0]
+    content = MarkupContent(
+        kind=MarkupKind.Markdown,
+        value=substructure.description.content,
+    )
+    hover_range = Range(
+        start=Position(line=text_range.from_line-1, character=text_range.from_offset),
+        end=Position(line=text_range.to_line-1, character=text_range.to_offset),
+    )
+    return Hover(contents=content, range=hover_range)
+
+
 async def _get_substructure_config(ls: PyDeodoriserServer):
     """Retrieves a dictionary of the substructure config"""
     try:
@@ -160,7 +196,13 @@ async def did_open(ls: PyDeodoriserServer, params: DidOpenTextDocumentParams):
     _validate(ls, params)
 
 
+# NOTE: currently not being registered for unknown reasons
 @pyDeodoriser.feature(WORKSPACE_DID_CHANGE_CONFIGURATION)
 async def did_change_configuration(ls: PyDeodoriserServer, params: DidChangeConfigurationParams):
     ls.show_message('Configuration Did Change')
     await _get_substructure_config(ls)
+
+
+@pyDeodoriser.feature(HOVER)
+def did_hover(ls: PyDeodoriserServer, params: HoverParams):
+    return _check_hover(ls, params)
