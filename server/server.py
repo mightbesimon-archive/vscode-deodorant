@@ -50,7 +50,7 @@ class PyDeodoriserServer(LanguageServer):
 pyDeodoriser = PyDeodoriserServer()
 
 
-def _validate(ls, params):
+def _validate(ls: PyDeodoriserServer, params):
     text_doc = ls.workspace.get_document(params.text_document.uri)
     source = text_doc.source
 
@@ -58,7 +58,7 @@ def _validate(ls, params):
     # diagnostics = _validate_string(source) # for debugging
 
     diagnostics = [ diagnostic
-        for name, clss in ls.substructures.items() if name in ls.substructure_config
+        for name, clss in ls.substructures.items() if ls.substructure_config.get(name)
         for diagnostic in _validate_substructure(source, clss)
     ]
 
@@ -68,8 +68,8 @@ def _validate(ls, params):
 
 def _generate_diagnostic(text_range, message):
     diagnostic_range = Range(
-        start=Position(line=text_range.from_line-1, character=text_range.from_offset-1),
-        end=Position(line=text_range.to_line-1, character=text_range.to_offset-1),
+        start=Position(line=text_range.from_line-1, character=text_range.from_offset),
+        end=Position(line=text_range.to_line-1, character=text_range.to_offset),
     )
     return Diagnostic(
         range=diagnostic_range,
@@ -110,7 +110,7 @@ def _validate_string(source, detect_string='hello world'):
     ]
 
 
-async def _get_substructure_config(ls):
+async def _get_substructure_config(ls: PyDeodoriserServer):
     """Retrieves a dictionary of the substructure config"""
     try:
         config = await ls.get_configuration_async(
@@ -121,32 +121,33 @@ async def _get_substructure_config(ls):
                 )
             ])
         )
-        ls.substructure_config = config[0].get("substructures")
+        ls.substructure_config = config[0].get('substructures')
+        # ls.show_message(f'pyDeodoriser.substructures: {ls.substructure_config}')
     except Exception as e:
         ls.show_message_log(f'Config error: {e}')
-
+        ls.show_message(f'Config error: {e}')
 
 @pyDeodoriser.feature(TEXT_DOCUMENT_DID_CHANGE)
-def did_change(ls, params: DidChangeTextDocumentParams):
+def did_change(ls: PyDeodoriserServer, params: DidChangeTextDocumentParams):
     """Text document did change notification."""
     _validate(ls, params)
 
 
 @pyDeodoriser.feature(TEXT_DOCUMENT_DID_CLOSE)
-def did_close(server: PyDeodoriserServer, params: DidCloseTextDocumentParams):
+def did_close(ls: PyDeodoriserServer, params: DidCloseTextDocumentParams):
     """Text document did close notification."""
-    server.show_message('Text Document Did Close')
+    # server.show_message('Text Document Did Close')
 
 
 @pyDeodoriser.feature(TEXT_DOCUMENT_DID_OPEN)
-async def did_open(ls, params: DidOpenTextDocumentParams):
+async def did_open(ls: PyDeodoriserServer, params: DidOpenTextDocumentParams):
     """Text document did open notification."""
-    ls.show_message('Text Document Did Open')
+    # ls.show_message('Text Document Did Open')
     await _get_substructure_config(ls)
     _validate(ls, params)
 
 
 @pyDeodoriser.feature(WORKSPACE_DID_CHANGE_CONFIGURATION)
-async def did_change_configuration(ls, params: DidChangeConfigurationParams):
+async def did_change_configuration(ls: PyDeodoriserServer, params: DidChangeConfigurationParams):
     ls.show_message('Configuration Did Change')
-    _get_substructure_config(ls)
+    await _get_substructure_config(ls)
