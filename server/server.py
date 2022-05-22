@@ -15,19 +15,32 @@
 # limitations under the License.                                           #
 ############################################################################
 
-from pygls.lsp.methods import (TEXT_DOCUMENT_DID_CHANGE,
-                               TEXT_DOCUMENT_DID_CLOSE, TEXT_DOCUMENT_DID_OPEN,
-                               WORKSPACE_DID_CHANGE_CONFIGURATION)
-from pygls.lsp.types import (ConfigurationItem, ConfigurationParams,
-                             DidChangeConfigurationParams,
-                             Diagnostic, DiagnosticSeverity,
-                             DidChangeTextDocumentParams,
-                             DidCloseTextDocumentParams,
-                             DidOpenTextDocumentParams,
-                             Position, Range,)
+from email import message
+from pygls.lsp.methods import (
+    TEXT_DOCUMENT_DID_CHANGE,
+    TEXT_DOCUMENT_DID_CLOSE,
+    TEXT_DOCUMENT_DID_OPEN,
+    WORKSPACE_DID_CHANGE_CONFIGURATION,
+)
+from pygls.lsp.types import (
+    ConfigurationItem,
+    ConfigurationParams,
+    DidChangeConfigurationParams,
+    Diagnostic,
+    DiagnosticSeverity,
+    DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    Position,
+    Range,
+)
 from pygls.server import LanguageServer
 
-from qchecker import substructures
+from qchecker.substructures import (
+    SUBSTRUCTURES,
+    Substructure,
+)
+from qchecker.match import TextRange
 
 
 class PyDeodoriserServer(LanguageServer):
@@ -41,9 +54,8 @@ class PyDeodoriserServer(LanguageServer):
     def __init__(self):
         super().__init__()
         self.substructure_config = {}
-        self.substructures = { name: clss
-            for name, clss in substructures.__dict__.items()
-            if isinstance(clss, type)
+        self.substructures = { s.name: s
+            for s in SUBSTRUCTURES
         } # dictionary of qcheckers substructures
 
 
@@ -66,25 +78,26 @@ def _validate(ls: PyDeodoriserServer, params):
 
 
 
-def _generate_diagnostic(text_range, message):
+def _generate_diagnostic(text_range: TextRange, substructure: Substructure):
     diagnostic_range = Range(
         start=Position(line=text_range.from_line-1, character=text_range.from_offset),
         end=Position(line=text_range.to_line-1, character=text_range.to_offset),
     )
     return Diagnostic(
         range=diagnostic_range,
-        message=message,
+        message=substructure.technical_description,
+        # message=substructure.description.content,
         source=PyDeodoriserServer.WARNING_SOURCE,
         severity = DiagnosticSeverity.Warning,
+        code=substructure.name,
     )
 
 
-def _validate_substructure(source, substructure):
+def _validate_substructure(source: str, substructure: Substructure):
     """Flags matches of the substructure as warnings"""
     try:
         matches = substructure.iter_matches(source)
-        return [_generate_diagnostic(match.text_range,
-            substructure.technical_description) for match in matches]
+        return [_generate_diagnostic(match.text_range, substructure) for match in matches]
     except SyntaxError:
         return [] # do not return any diagnostics if code fails to parse
 

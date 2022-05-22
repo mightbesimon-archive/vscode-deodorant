@@ -25,97 +25,109 @@
           "type": "object",
           "description": "Toggle the detection of different patterns.",
           "properties": {
-            "UnnecessaryElif": {
+            "Unnecessary Elif": {
               "type": "boolean"
             },
-            "IfElseReturnBool": {
+            "If/Else Return Bool": {
               "type": "boolean"
             },
-            "IfReturnBool": {
+            "If Return Bool": {
               "type": "boolean"
             },
-            "IfElseAssignReturn": {
+            "If/Else Assign Bool Return": {
               "type": "boolean"
             },
-            "IfElseAssignBoolReturn": {
+            "If/Else Assign Return": {
               "type": "boolean"
             },
-            "IfElseAssignBool": {
+            "If/Else Assign Bool": {
               "type": "boolean"
             },
-            "EmptyIfBody": {
+            "Empty If Body": {
               "type": "boolean"
             },
-            "EmptyElseBody": {
+            "Empty Else Body": {
               "type": "boolean"
             },
-            "NestedIf": {
+            "Nested If": {
               "type": "boolean"
             },
-            "UnnecessaryElse": {
+            "Unnecessary Else": {
               "type": "boolean"
             },
-            "DuplicateIfElseStatement": {
+            "Duplicate If/Else Statement": {
               "type": "boolean"
             },
-            "SeveralDuplicateIfElseStatements": {
+            "Several Duplicate If/Else Statements": {
               "type": "boolean"
             },
-            "DuplicateIfElseBody": {
+            "Duplicate If/Else Body": {
               "type": "boolean"
             },
-            "AugmentableAssignment": {
+            "Augmentable Assignment": {
               "type": "boolean"
             },
-            "DuplicateExpression": {
+            "Duplicate Expression": {
               "type": "boolean"
             },
-            "MissedAbsoluteValue": {
+            "Missed Absolute Value": {
               "type": "boolean"
             },
-            "RepeatedAddition": {
+            "Repeated Addition": {
               "type": "boolean"
             },
-            "RepeatedMultiplication": {
+            "Repeated Multiplication": {
               "type": "boolean"
             },
-            "RedundantArithmetic": {
+            "Redundant Arithmetic": {
               "type": "boolean"
             },
-            "RedundantNot": {
+            "Redundant Not": {
               "type": "boolean"
             },
-            "RedundantComparison": {
+            "Redundant Comparison": {
               "type": "boolean"
             },
-            "MergeableEqual": {
+            "Mergeable Equal": {
+              "type": "boolean"
+            },
+            "Redundant For": {
+              "type": "boolean"
+            },
+            "Confusing Else": {
+              "type": "boolean"
+            },
+            "Else If": {
               "type": "boolean"
             }
           },
           "additionalProperties": false,
           "default": {
-            "UnnecessaryElif": true,
-            "IfElseReturnBool": true,
-            "IfReturnBool": true,
-            "IfElseAssignReturn": true,
-            "IfElseAssignBoolReturn": true,
-            "IfElseAssignBool": true,
-            "EmptyIfBody": true,
-            "EmptyElseBody": true,
-            "NestedIf": true,
-            "UnnecessaryElse": true,
-            "DuplicateIfElseStatement": true,
-            "SeveralDuplicateIfElseStatements": true,
-            "DuplicateIfElseBody": true,
-            "AugmentableAssignment": true,
-            "DuplicateExpression": true,
-            "MissedAbsoluteValue": true,
-            "RepeatedAddition": true,
-            "RepeatedMultiplication": true,
-            "RedundantArithmetic": true,
-            "RedundantNot": true,
-            "RedundantComparison": true,
-            "MergeableEqual": true
+            "Unnecessary Elif": true,
+            "If/Else Return Bool": true,
+            "If Return Bool": true,
+            "If/Else Assign Bool Return": true,
+            "If/Else Assign Return": true,
+            "If/Else Assign Bool": true,
+            "Empty If Body": true,
+            "Empty Else Body": true,
+            "Nested If": true,
+            "Unnecessary Else": true,
+            "Duplicate If/Else Statement": true,
+            "Several Duplicate If/Else Statements": true,
+            "Duplicate If/Else Body": true,
+            "Augmentable Assignment": true,
+            "Duplicate Expression": true,
+            "Missed Absolute Value": true,
+            "Repeated Addition": true,
+            "Repeated Multiplication": true,
+            "Redundant Arithmetic": true,
+            "Redundant Not": true,
+            "Redundant Comparison": true,
+            "Mergeable Equal": true,
+            "Redundant For": true,
+            "Confusing Else": true,
+            "Else If": true
           }
         }
       }
