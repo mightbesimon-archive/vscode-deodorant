@@ -39,6 +39,7 @@ from pygls.lsp.types import (
     MarkupKind,
     Position,
     Range,
+    TextDocumentIdentifier,
 )
 from pygls.server import LanguageServer
 
@@ -50,159 +51,121 @@ from qchecker.match import TextRange
 
 
 class PyDeodoriserServer(LanguageServer):
-    CMD_SHOW_CONFIGURATION_ASYNC = 'showConfigurationAsync'
-    CMD_SHOW_CONFIGURATION_CALLBACK = 'showConfigurationCallback'
-    CMD_SHOW_CONFIGURATION_THREAD = 'showConfigurationThread'
 
+    CMD_SHOW_CONFIGURATION_ASYNC = 'showConfigurationAsync'
     CONFIGURATION_SECTION = 'pyDeodoriser'
-    WARNING_SOURCE = 'pyDeodoriser'
+    DIAGNOSTIC_SOURCE = 'pyDeodoriser'
 
     def __init__(self):
         super().__init__()
         self.substructure_config = {}
-        self.substructures = { sub.name: sub
-            for sub in SUBSTRUCTURES
-        } # dictionary of qcheckers substructures
+        self.substructures = { sub.name: sub for sub in SUBSTRUCTURES }
+        self.document = None
+        self.matches = None
+
+    async def get_config_substructure(self):
+        try:
+            config = await self.get_configuration_async(
+                ConfigurationParams(items=[ ConfigurationItem(
+                    scope_uri='', section=PyDeodoriserServer.CONFIGURATION_SECTION
+                )])
+            )
+            self.substructure_config = config[0].get('substructures')
+            self.show_message_log(f'pyDeodoriser.substructures: {self.substructure_config}')
+
+        except Exception as e:
+            self.show_message_log(f'Config error: {e}')
+
+
+    def validate(self, document: TextDocumentIdentifier):
+        self.document = self.workspace.get_document(document.uri)
+        if not self.document.source: return
+
+        print(f'[0]matches={self.matches}')
+        self.matches = [ (match, sub)
+            for name, sub in self.substructures.items() if self.substructure_config.get(name)
+            for match in self._try_iter(sub, self.document.source)
+        ]
+        diagnostics = [
+            self._make_diagnostic(match.text_range, substrcture)
+            for match, substrcture in self.matches
+        ]
+        self.publish_diagnostics(self.document.uri, diagnostics)
+
+
+    def hover(self, position: Position):
+        hover_match = [ (match.text_range, substructure)
+            for match, substructure in self.matches if self._contains(match.text_range, position)
+        ]
+        if not hover_match: return
+
+        text_range, substructure = hover_match[0]
+        content = MarkupContent(
+            kind=MarkupKind.Markdown,
+            value=substructure.description.content,
+        )
+        hover_range = Range(
+            start=Position(line=text_range.from_line-1, character=text_range.from_offset),
+            end=Position(line=text_range.to_line-1, character=text_range.to_offset),
+        )
+        return Hover(contents=content, range=hover_range)
+
+    @staticmethod
+    def _make_diagnostic(text_range: TextRange, substructure: Substructure):
+        diagnostic_range = Range(
+            start=Position(line=text_range.from_line-1, character=text_range.from_offset),
+            end=Position(line=text_range.to_line-1, character=text_range.to_offset),
+        )
+        return Diagnostic(
+            range=diagnostic_range,
+            message=substructure.technical_description,
+            source=PyDeodoriserServer.DIAGNOSTIC_SOURCE,
+            severity = DiagnosticSeverity.Information,
+            code=substructure.name,
+        )
+
+    @staticmethod
+    def _try_iter(substructure: Substructure, source: str):
+        try:
+            return substructure.iter_matches(source)
+        except:
+            return []
+
+    @staticmethod
+    def _contains(text_range: TextRange, position: Position):
+        return text_range.from_line <= position.line <= text_range.to_line
+
 
 
 pyDeodoriser = PyDeodoriserServer()
 
 
-def _validate(ls: PyDeodoriserServer, params):
-    text_doc = ls.workspace.get_document(params.text_document.uri)
-    source = text_doc.source
-
-    if not source: return   # guard clause
-    # diagnostics = _validate_string(source) # for debugging
-
-    diagnostics = [ diagnostic
-        for name, sub in ls.substructures.items() if ls.substructure_config.get(name)
-        for diagnostic in _validate_substructure(source, sub)
-    ]
-
-    ls.publish_diagnostics(text_doc.uri, diagnostics)
-
-
-
-def _generate_diagnostic(text_range: TextRange, substructure: Substructure):
-    diagnostic_range = Range(
-        start=Position(line=text_range.from_line-1, character=text_range.from_offset),
-        end=Position(line=text_range.to_line-1, character=text_range.to_offset),
-    )
-    return Diagnostic(
-        range=diagnostic_range,
-        message=substructure.technical_description,
-        # message=substructure.description.content,
-        source=PyDeodoriserServer.WARNING_SOURCE,
-        severity = DiagnosticSeverity.Warning,
-        code=substructure.name,
-    )
-
-
-def _validate_substructure(source: str, substructure: Substructure):
-    """Flags matches of the substructure as warnings"""
-    try:
-        matches = substructure.iter_matches(source)
-        return [_generate_diagnostic(match.text_range, substructure) for match in matches]
-    except SyntaxError:
-        return [] # do not return any diagnostics if code fails to parse
-
-
-def _make_diagnostic(line, character, string):
-    diagnostic_range = Range(
-        start=Position(line=line, character=character),
-        end=Position(line=line, character=character+len(string)),
-    )
-    return Diagnostic(
-        range=diagnostic_range,
-        message=f'Detected string "{string}"',
-        source=PyDeodoriserServer.WARNING_SOURCE,
-        severity = DiagnosticSeverity.Warning,
-    )
-
-
-def _validate_string(source, detect_string='hello world'):
-    """Detects the specified string, default='hello world'."""
-
-    return [ _make_diagnostic(idx, line.find(detect_string), detect_string)
-        for idx, line in enumerate(source.split('\n')) if detect_string in line
-    ]
-
-
-def _contains(text_range: TextRange, position: Position):
-    return text_range.from_line <= position.line <= text_range.to_line
-
-
-def _check_hover(ls: PyDeodoriserServer, params: HoverParams):
-    text_doc = ls.workspace.get_document(params.text_document.uri)
-    source = text_doc.source
-
-    match_ranges = [ (match.text_range, sub)
-        for name, sub in ls.substructures.items() if ls.substructure_config.get(name)
-        for match in sub.iter_matches(source)
-    ]
-    hover_match = [ (text_range, sub)
-        for text_range, sub in match_ranges if _contains(text_range, params.position)
-    ]
-
-    if not hover_match: return
-
-    text_range, substructure = hover_match[0]
-    content = MarkupContent(
-        kind=MarkupKind.Markdown,
-        value=substructure.description.content,
-    )
-    hover_range = Range(
-        start=Position(line=text_range.from_line-1, character=text_range.from_offset),
-        end=Position(line=text_range.to_line-1, character=text_range.to_offset),
-    )
-    return Hover(contents=content, range=hover_range)
-
-
-async def _get_substructure_config(ls: PyDeodoriserServer):
-    """Retrieves a dictionary of the substructure config"""
-    try:
-        config = await ls.get_configuration_async(
-            ConfigurationParams(items=[
-                ConfigurationItem(
-                    scope_uri='',
-                    section=PyDeodoriserServer.CONFIGURATION_SECTION
-                )
-            ])
-        )
-        ls.substructure_config = config[0].get('substructures')
-        # ls.show_message(f'pyDeodoriser.substructures: {ls.substructure_config}')
-    except Exception as e:
-        ls.show_message_log(f'Config error: {e}')
-        ls.show_message(f'Config error: {e}')
-
 @pyDeodoriser.feature(TEXT_DOCUMENT_DID_CHANGE)
-def did_change(ls: PyDeodoriserServer, params: DidChangeTextDocumentParams):
+async def did_change(ls: PyDeodoriserServer, params: DidChangeTextDocumentParams):
     """Text document did change notification."""
-    _validate(ls, params)
-
-
-@pyDeodoriser.feature(TEXT_DOCUMENT_DID_CLOSE)
-def did_close(ls: PyDeodoriserServer, params: DidCloseTextDocumentParams):
-    """Text document did close notification."""
-    # server.show_message('Text Document Did Close')
+    await ls.get_config_substructure()
+    ls.validate(params.text_document)
 
 
 @pyDeodoriser.feature(TEXT_DOCUMENT_DID_OPEN)
 async def did_open(ls: PyDeodoriserServer, params: DidOpenTextDocumentParams):
     """Text document did open notification."""
-    # ls.show_message('Text Document Did Open')
-    await _get_substructure_config(ls)
-    _validate(ls, params)
+    await ls.get_config_substructure()
+    ls.validate(params.text_document)
+
+
+@pyDeodoriser.feature(TEXT_DOCUMENT_DID_CLOSE)
+def did_close(ls: PyDeodoriserServer, params: DidCloseTextDocumentParams):
+    ls.refresh(params.text_document)
 
 
 # NOTE: currently not being registered for unknown reasons
 @pyDeodoriser.feature(WORKSPACE_DID_CHANGE_CONFIGURATION)
 async def did_change_configuration(ls: PyDeodoriserServer, params: DidChangeConfigurationParams):
     ls.show_message('Configuration Did Change')
-    await _get_substructure_config(ls)
+    await ls.get_config_substructure()
 
 
 @pyDeodoriser.feature(HOVER)
 def did_hover(ls: PyDeodoriserServer, params: HoverParams):
-    return _check_hover(ls, params)
+    return ls.hover(params.position)
