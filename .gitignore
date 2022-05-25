@@ -5,3 +5,4 @@ client/server
 .vscode/settings.json
 venv*
 __pycache__
+pygls.log
