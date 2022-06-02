@@ -81,7 +81,7 @@ class PyDeodoriserServer(LanguageServer):
         self.document = self.workspace.get_document(document.uri)
         if not self.document.source: return
 
-        print(f'[0]matches={self.matches}')
+        #print(f'[0]matches={self.matches}')
         self.matches = [ (match, sub)
             for name, sub in self.substructures.items() if self.substructure_config.get(name)
             for match in self._try_iter(sub, self.document.source)
@@ -118,10 +118,9 @@ class PyDeodoriserServer(LanguageServer):
         )
         return Diagnostic(
             range=diagnostic_range,
-            message=substructure.technical_description,
+            message=substructure.name,
             source=PyDeodoriserServer.DIAGNOSTIC_SOURCE,
-            severity = DiagnosticSeverity.Information,
-            code=substructure.name,
+            severity = DiagnosticSeverity.Warning,
         )
 
     @staticmethod
@@ -133,7 +132,7 @@ class PyDeodoriserServer(LanguageServer):
 
     @staticmethod
     def _contains(text_range: TextRange, position: Position):
-        return text_range.from_line <= position.line <= text_range.to_line
+        return text_range.from_line <= position.line+1 <= text_range.to_line
 
 
 
