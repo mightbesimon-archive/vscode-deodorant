@@ -50,4 +50,4 @@ Open terminal and execute following commands:
 
 ## Acknowledgements
 
-James Finnie-Ansley for his work on qChecker.
+James Finnie-Ansley for their work on qChecker.
