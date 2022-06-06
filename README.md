@@ -20,7 +20,7 @@ Node.js TypeScript (language client)
 1. `python -m venv venv`
 1. `pip install -r requirements.txt` from root directory
 1. `source venv/bin/activate` on Mac, `.\venv\Scripts\activate` on Windows
-1. Create `.vscode/settings.json` file and set `python.pythonPath` to point to your python environment where `pygls` is installed
+1. Create `.vscode/settings.json` file and set `python.defaultInterpreterPath` to point to your python environment where `pygls` is installed
 
 `deactivate` to deactivate the virtual enviroment
 
