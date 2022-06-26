@@ -1,16 +1,45 @@
 {
-  "name": "pydeodoriser",
-  "description": "Python language extension for code smell",
+  "name": "vscode-deodorant",
+  "displayName": "Deodorant",
+  "description": "Deodor Python code smell. Detect common student anti-patterns",
+  "icon": "images/icon.png",
   "author": "Team 27 | COMPSCI 399 | Semester One | University of Auckland",
-  "repository": "https://github.com/uoa-compsci399-s1-2022/project-17/",
+  "repository": "https://github.com/mightbesimon/vscode-deodorant/",
   "license": "Apache-2.0",
-  "version": "0.11.3",
-  "publisher": "openlawlibrary",
+  "version": "0.99.99",
+  "publisher": "mightbesimon",
+  "contributors": [
+    "openlawlibrary",
+    "James-Ansley",
+    "JKleinsman",
+    "mightbesimon",
+    "sson057",
+    "GoldenBaz"
+  ],
+  "galleryBanner": {
+    "color": "#23282f",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.62.0"
   },
   "categories": [
-    "Other"
+    "Linters",
+    "Programming Languages",
+    "Education"
+  ],
+  "keywords": [
+    "anti",
+    "pattern",
+    "python",
+    "lint",
+    "student",
+    "beginner",
+    "pydeodorant",
+    "pydeodoriser",
+    "pydeodorisor",
+    "pydeodorizer",
+    "pydeodorizor"
   ],
   "activationEvents": [
     "onLanguage:python"
@@ -19,9 +48,9 @@
     "commands": [],
     "configuration": {
       "type": "object",
-      "title": "pyDeodoriser",
+      "title": "deodorant",
       "properties": {
-        "pyDeodoriser.substructures": {
+        "Deodorant.substructures": {
           "type": "object",
           "description": "Toggle the detection of different patterns.",
           "properties": {

@@ -1,19 +1,41 @@
-# PyDeodoriser
+# Deodorant
 
-A Visual Studio Code extension for Python that detects common anti-patterns as they are written. The extension provides descriptions of any detected anti-patterns and examples of better style.
+Deodor Python code smell.
 
-![image](https://user-images.githubusercontent.com/22739847/172131008-a849a776-b2cb-44ff-9523-b061cc166557.png)
+Detect common student anti-patterns in real time. Suggest clean alternatives.
 
-## Technologies
+![example](images/example1.png)
+
+# Authors
+
+- **Jack** - [JKleinsman](https://github.com/JKleinsman)
+- **Simon** - [mightbesimon](https://github.com/mightbesimon)
+- **Jonathan** - [sson057](https://github.com/sson057)
+- **Luke** - [GoldenBaz](https://github.com/GoldenBaz)
+
+# License
+
+Apache-2.0
+
+# Acknowledgements
+
+- **[James Finnie-Ansley](https://github.com/james-ansley)** for their work on [qChecker](https://github.com/james-ansley/qchecker).
+- **[openlawlibrary](https://github.com/openlawlibrary)** for their work on [pygls](https://github.com/openlawlibrary/pygls)
+- **[Asma Shakil](https://profiles.auckland.ac.nz/asma-shakil)** for organising the capstone course for us.
+- [University of Auckland](https://www.auckland.ac.nz/en.html)
+
+# Dev builds instructions
+
+The instructions below are for tinkering with the extension. If you are only using Deodorant as is, you don't need to worry about this section :)
+
+## Stack
 
 Python 3.10 (language server)
- * pygls v0.11.3  
- * qChecker v1.0.2  
+ * pygls v0.11.3
+ * qChecker v1.0.2
 
-Node.js TypeScript (language client)  
-  * vscode-languageclient v7.0.0  
-
-## How to Build
+Node and TypeScript (language client)
+  * vscode-languageclient v7.0.0
 
 ### Install Server Dependencies
 
@@ -37,17 +59,3 @@ Open terminal and execute following commands:
 1. Open this directory in VS Code
 1. Open debug view (`ctrl + shift + D`)
 1. Select `Server + Client` and press `F5`
-
-### Package Extension
-
-`vsce package` (requires node package vsce)  
-
-## Future Plans
-
-* Any new anti-patterns added to qChecker can be added to the extension by adding them to the configuration section of the package.json.  
-* Support for different languages could be added.  
-* Extensions for different IDES could be developed.  
-
-## Acknowledgements
-
-James Finnie-Ansley for their work on qChecker.

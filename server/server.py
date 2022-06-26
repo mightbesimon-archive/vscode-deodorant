@@ -1,22 +1,3 @@
-############################################################################
-# Copyright(c) Open Law Library. All rights reserved.                      #
-# See ThirdPartyNotices.txt in the project root for additional notices.    #
-#                                                                          #
-# Licensed under the Apache License, Version 2.0 (the "License")           #
-# you may not use this file except in compliance with the License.         #
-# You may obtain a copy of the License at                                  #
-#                                                                          #
-#     http: // www.apache.org/licenses/LICENSE-2.0                         #
-#                                                                          #
-# Unless required by applicable law or agreed to in writing, software      #
-# distributed under the License is distributed on an "AS IS" BASIS,        #
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #
-# See the License for the specific language governing permissions and      #
-# limitations under the License.                                           #
-############################################################################
-
-from cgitb import text
-from email import message
 from pygls.lsp.methods import (
     HOVER,
     TEXT_DOCUMENT_DID_CHANGE,
@@ -53,8 +34,8 @@ from qchecker.match import TextRange
 class PyDeodoriserServer(LanguageServer):
 
     CMD_SHOW_CONFIGURATION_ASYNC = 'showConfigurationAsync'
-    CONFIGURATION_SECTION = 'pyDeodoriser'
-    DIAGNOSTIC_SOURCE = 'pyDeodoriser'
+    CONFIGURATION_SECTION = 'Deodorant'
+    DIAGNOSTIC_SOURCE = 'Deodorant'
 
     def __init__(self):
         super().__init__()
@@ -81,7 +62,6 @@ class PyDeodoriserServer(LanguageServer):
         self.document = self.workspace.get_document(document.uri)
         if not self.document.source: return
 
-        #print(f'[0]matches={self.matches}')
         self.matches = [ (match, sub)
             for name, sub in self.substructures.items() if self.substructure_config.get(name)
             for match in self._try_iter(sub, self.document.source)
@@ -119,6 +99,7 @@ class PyDeodoriserServer(LanguageServer):
         return Diagnostic(
             range=diagnostic_range,
             message=substructure.name,
+            code=substructure.technical_description,
             source=PyDeodoriserServer.DIAGNOSTIC_SOURCE,
             severity = DiagnosticSeverity.Warning,
         )
@@ -133,7 +114,6 @@ class PyDeodoriserServer(LanguageServer):
     @staticmethod
     def _contains(text_range: TextRange, position: Position):
         return text_range.from_line <= position.line+1 <= text_range.to_line
-
 
 
 pyDeodoriser = PyDeodoriserServer()
